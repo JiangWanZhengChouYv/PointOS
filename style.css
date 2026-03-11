@@ -1,0 +1,267 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f5f5f5;
+    color: #333;
+    line-height: 1.6;
+}
+
+header {
+    background-color: #4CAF50;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: bold;
+}
+
+main {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.score-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.score-group {
+    flex: 0 0 calc(16% - 12px);
+    min-width: 200px;
+    background-color: white;
+    border-radius: 8px;
+    padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+@media (max-width: 1200px) {
+    .score-group {
+        flex: 0 0 calc(33.333% - 10px);
+    }
+}
+
+@media (max-width: 768px) {
+    .score-group {
+        flex: 0 0 calc(50% - 7.5px);
+    }
+}
+
+@media (max-width: 480px) {
+    .score-group {
+        flex: 0 0 100%;
+    }
+}
+
+.score-group:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.score-group h2 {
+    color: #4CAF50;
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+    text-align: center;
+}
+
+.score-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    position: relative;
+}
+
+.score-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #333;
+    min-width: 80px;
+    text-align: center;
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.score-value.updated {
+    animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #4CAF50; }
+    100% { transform: scale(1); }
+}
+
+.score-input {
+    width: 100%;
+    max-width: 120px;
+    padding: 8px;
+    font-size: 1.1rem;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    text-align: center;
+    transition: border-color 0.3s ease;
+}
+
+.score-input:focus {
+    outline: none;
+    border-color: #4CAF50;
+}
+
+.score-save {
+    width: 100%;
+    max-width: 120px;
+    padding: 8px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.score-save:hover {
+    background-color: #45a049;
+}
+
+.score-save:active {
+    transform: scale(0.95);
+}
+
+.score-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.score-add, .score-subtract, .score-reset {
+    padding: 8px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+@media (max-width: 768px) {
+    .score-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .score-add, .score-subtract, .score-reset {
+        width: 100%;
+        padding: 12px;
+    }
+}
+
+.score-add {
+    background-color: #4CAF50;
+    color: white;
+}
+
+.score-add:hover {
+    background-color: #45a049;
+}
+
+.score-subtract {
+    background-color: #f44336;
+    color: white;
+}
+
+.score-subtract:hover {
+    background-color: #da190b;
+}
+
+.score-reset {
+    background-color: #ff9800;
+    color: white;
+}
+
+.score-reset:hover {
+    background-color: #e68a00;
+}
+
+.score-add:active, .score-subtract:active, .score-reset:active {
+    transform: scale(0.95);
+}
+
+.global-controls {
+    display: flex;
+    justify-content: center;
+    margin-top: 30px;
+}
+
+.reset-all {
+    padding: 15px 30px;
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-weight: bold;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.reset-all:hover {
+    background-color: #da190b;
+}
+
+.reset-all:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+    .score-container {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    
+    .score-value {
+        font-size: 2.5rem;
+    }
+    
+    .score-controls {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .score-add, .score-subtract, .score-reset {
+        width: 100%;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    header h1 {
+        font-size: 1.5rem;
+    }
+    
+    .score-group {
+        padding: 15px;
+    }
+    
+    .score-value {
+        font-size: 2rem;
+    }
+    
+    .score-input {
+        width: 60px;
+        font-size: 1rem;
+    }
+}
