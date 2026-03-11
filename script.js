@@ -175,6 +175,48 @@ function init() {
         }
     });
     
+    // 绑定评比按钮事件
+    document.querySelector('.evaluate').addEventListener('click', function() {
+        // 找出分数最高的小组
+        let maxScore = -1;
+        let winningGroup = '';
+        
+        for (let i = 1; i <= 7; i++) {
+            const score = scoreData.groups[i.toString()] || 0;
+            if (score > maxScore) {
+                maxScore = score;
+                winningGroup = i;
+            }
+        }
+        
+        // 显示获胜小组
+        if (winningGroup) {
+            alert(`评比结果：小组 ${winningGroup} 得分最高，分数为 ${maxScore}！`);
+            
+            // 清空所有小组的比分
+            for (let i = 1; i <= 7; i++) {
+                scoreData.groups[i.toString()] = 0;
+            }
+            saveData(scoreData);
+            
+            // 更新页面显示
+            document.querySelectorAll('.score-value').forEach(element => {
+                element.textContent = '0';
+                addFeedback(element);
+            });
+            document.querySelectorAll('.score-input').forEach(element => {
+                element.value = '0';
+            });
+            
+            // 跳转到指定URL
+            setTimeout(() => {
+                window.location.href = 'https://bjcwy.rxtw666.cn/login';
+            }, 1000);
+        } else {
+            alert('没有可评比的分数！');
+        }
+    });
+    
     // 绑定保存按钮事件
     document.querySelectorAll('.score-save').forEach(button => {
         button.addEventListener('click', function() {
