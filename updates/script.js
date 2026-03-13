@@ -498,36 +498,71 @@ function init() {
                                 { url: `${serverUrl}/script.js?t=${Date.now()}`, name: 'script.js' }
                             ];
                             let downloadedFiles = 0;
-                            let downloadPromises = [];
                             
-                            filesToDownload.forEach((fileInfo, index) => {
-                                const downloadPromise = fetch(fileInfo.url, {
-                                    timeout: 10000 // 每个文件10秒超时
-                                })
-                                    .then(response => {
-                                        if (isCancelled) throw new Error('更新已取消');
+                            // 使用async/await实现串行处理
+                            const processFiles = async () => {
+                                for (const fileInfo of filesToDownload) {
+                                    if (isCancelled) throw new Error('更新已取消');
+                                    
+                                    try {
+                                        // 显示正在处理的文件名
+                                        progressContainer.innerHTML = `
+                                            <p>正在下载 ${fileInfo.name}...</p>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: ${Math.round((downloadedFiles / filesToDownload.length) * 100)}%"></div>
+                                            </div>
+                                            <p class="progress-text">${Math.round((downloadedFiles / filesToDownload.length) * 100)}%</p>
+                                            <button class="update-cancel">取消</button>
+                                        `;
+                                        
+                                        // 重新绑定取消按钮事件
+                                        progressContainer.querySelector('.update-cancel').addEventListener('click', function() {
+                                            isCancelled = true;
+                                            alert('更新已取消');
+                                            document.body.removeChild(overlay);
+                                        });
+                                        
+                                        // 下载文件
+                                        const response = await fetch(fileInfo.url, {
+                                            timeout: 10000 // 每个文件10秒超时
+                                        });
+                                        
                                         if (!response.ok) {
                                             throw new Error(`下载文件失败: ${fileInfo.url} (${response.status})`);
                                         }
-                                        return response.text();
-                                    })
-                                    .then(content => {
-                                        if (isCancelled) throw new Error('更新已取消');
+                                        
+                                        const content = await response.text();
+                                        
+                                        // 显示正在保存的文件名
+                                        progressContainer.innerHTML = `
+                                            <p>正在保存 ${fileInfo.name}...</p>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: ${Math.round((downloadedFiles / filesToDownload.length) * 100)}%"></div>
+                                            </div>
+                                            <p class="progress-text">${Math.round((downloadedFiles / filesToDownload.length) * 100)}%</p>
+                                            <button class="update-cancel">取消</button>
+                                        `;
+                                        
+                                        // 重新绑定取消按钮事件
+                                        progressContainer.querySelector('.update-cancel').addEventListener('click', function() {
+                                            isCancelled = true;
+                                            alert('更新已取消');
+                                            document.body.removeChild(overlay);
+                                        });
                                         
                                         // 尝试使用File System Access API保存文件
                                         if (window.showSaveFilePicker) {
-                                            return window.showSaveFilePicker({
+                                            const handle = await window.showSaveFilePicker({
                                                 suggestedName: fileInfo.name,
                                                 types: [{
                                                     description: 'Text file',
                                                     accept: { 'text/*': ['.html', '.css', '.js'] }
                                                 }]
-                                            })
-                                            .then(handle => handle.createWritable())
-                                            .then(writable => {
-                                                writable.write(content);
-                                                return writable.close();
                                             });
+                                            
+                                            const writable = await handle.createWritable();
+                                            await writable.write(content);
+                                            await writable.close();
                                         } else {
                                             // 降级方案：使用Blob下载
                                             const blob = new Blob([content], { type: 'text/plain' });
@@ -539,29 +574,37 @@ function init() {
                                             a.click();
                                             document.body.removeChild(a);
                                             URL.revokeObjectURL(url);
-                                            return Promise.resolve();
                                         }
-                                    })
-                                    .then(() => {
-                                        if (isCancelled) throw new Error('更新已取消');
-                                        downloadedFiles++;
                                         
                                         // 更新进度
+                                        downloadedFiles++;
                                         const progress = Math.round((downloadedFiles / filesToDownload.length) * 100);
-                                        progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
-                                        progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
-                                    })
-                                    .catch(error => {
+                                        progressContainer.innerHTML = `
+                                            <p>已完成 ${fileInfo.name}</p>
+                                            <div class="progress-bar">
+                                                <div class="progress-fill" style="width: ${progress}%"></div>
+                                            </div>
+                                            <p class="progress-text">${progress}%</p>
+                                            <button class="update-cancel">取消</button>
+                                        `;
+                                        
+                                        // 重新绑定取消按钮事件
+                                        progressContainer.querySelector('.update-cancel').addEventListener('click', function() {
+                                            isCancelled = true;
+                                            alert('更新已取消');
+                                            document.body.removeChild(overlay);
+                                        });
+                                        
+                                    } catch (error) {
                                         if (isCancelled) throw error;
                                         console.error(`下载 ${fileInfo.name} 失败:`, error);
                                         throw new Error(`下载 ${fileInfo.name} 失败: ${error.message}。请检查文件权限或手动下载更新。`);
-                                    });
-                                
-                                downloadPromises.push(downloadPromise);
-                            });
+                                    }
+                                }
+                            };
                             
-                            // 等待所有文件下载完成
-                            Promise.all(downloadPromises)
+                            // 执行串行处理
+                            processFiles()
                                 .then(() => {
                                     if (isCancelled) return;
                                     
