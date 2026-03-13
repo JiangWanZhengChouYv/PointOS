@@ -482,7 +482,16 @@ function init() {
                                 document.body.removeChild(overlay);
                             });
                             
-                            // 下载更新文件并通过Service Worker更新缓存
+                            // 添加超时机制
+                            const timeoutId = setTimeout(() => {
+                                if (!isCancelled) {
+                                    isCancelled = true;
+                                    alert('更新超时，请检查网络连接后重试');
+                                    document.body.removeChild(overlay);
+                                }
+                            }, 30000); // 30秒超时
+                            
+                            // 下载更新文件
                             const filesToDownload = [
                                 `${serverUrl}/积分.html?t=${Date.now()}`,
                                 `${serverUrl}/style.css?t=${Date.now()}`,
@@ -492,11 +501,13 @@ function init() {
                             let downloadPromises = [];
                             
                             filesToDownload.forEach((fileUrl, index) => {
-                                const downloadPromise = fetch(fileUrl)
+                                const downloadPromise = fetch(fileUrl, {
+                                    timeout: 10000 // 每个文件10秒超时
+                                })
                                     .then(response => {
                                         if (isCancelled) throw new Error('更新已取消');
                                         if (!response.ok) {
-                                            throw new Error(`下载文件失败: ${fileUrl}`);
+                                            throw new Error(`下载文件失败: ${fileUrl} (${response.status})`);
                                         }
                                         return response;
                                     })
@@ -508,6 +519,10 @@ function init() {
                                         const progress = Math.round((downloadedFiles / filesToDownload.length) * 100);
                                         progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
                                         progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
+                                    })
+                                    .catch(error => {
+                                        if (isCancelled) throw error;
+                                        throw new Error(`下载 ${fileUrl} 失败: ${error.message}`);
                                     });
                                 
                                 downloadPromises.push(downloadPromise);
@@ -518,39 +533,25 @@ function init() {
                                 .then(() => {
                                     if (isCancelled) return;
                                     
-                                    progressContainer.innerHTML = '<p>下载完成，正在更新缓存...</p>';
+                                    // 清除超时
+                                    clearTimeout(timeoutId);
                                     
-                                    // 通过Service Worker更新缓存
-                                    if ('serviceWorker' in navigator) {
-                                        navigator.serviceWorker.ready
-                                            .then((registration) => {
-                                                if (isCancelled) return;
-                                                registration.active.postMessage({
-                                                    type: 'UPDATE_CACHE',
-                                                    files: [
-                                                        '积分.html',
-                                                        'style.css',
-                                                        'script.js'
-                                                    ]
-                                                });
-                                                
-                                                // 显示更新成功提示
-                                                progressContainer.innerHTML = '<p>更新缓存完成，正在应用更新...</p>';
-                                            })
-                                            .catch((error) => {
-                                                console.error('Service Worker更新失败:', error);
-                                                alert('更新成功！请刷新页面以应用更新。');
-                                                document.body.removeChild(overlay);
-                                                location.reload(true);
-                                            });
-                                    } else {
-                                        // 不支持Service Worker时的 fallback
-                                        alert('更新成功！请刷新页面以应用更新。');
+                                    progressContainer.innerHTML = '<p>下载完成，正在应用更新...</p>';
+                                    
+                                    // 简化更新流程，直接刷新页面
+                                    setTimeout(() => {
+                                        alert('更新成功！正在应用更新...');
                                         document.body.removeChild(overlay);
-                                        location.reload(true);
-                                    }
+                                        // 强制刷新页面，确保加载最新文件
+                                        setTimeout(() => {
+                                            location.reload(true);
+                                        }, 500);
+                                    }, 1000);
                                 })
                                 .catch(error => {
+                                    // 清除超时
+                                    clearTimeout(timeoutId);
+                                    
                                     if (!isCancelled) {
                                         alert('更新失败：' + error.message);
                                         document.body.removeChild(overlay);
