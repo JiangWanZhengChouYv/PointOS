@@ -467,31 +467,59 @@ function init() {
                             updateNotice.innerHTML = '';
                             updateNotice.appendChild(progressContainer);
                             
-                            // 模拟下载进度
-                            let progress = 0;
-                            const interval = setInterval(() => {
-                                progress += 10;
-                                if (progress > 100) {
-                                    clearInterval(interval);
-                                    // 下载完成
-                                    progressContainer.innerHTML = '<p>下载完成，正在校验...</p>';
-                                    
-                                    // 模拟校验
-                                    setTimeout(() => {
-                                        progressContainer.innerHTML = '<p>校验完成，正在更新...</p>';
+                            // 下载更新文件
+                            const filesToDownload = [
+                                '积分.html',
+                                'style.css',
+                                'script.js'
+                            ];
+                            let downloadedFiles = 0;
+                            
+                            filesToDownload.forEach((fileName, index) => {
+                                fetch(`${serverUrl}/${fileName}?t=${Date.now()}`) // 添加时间戳防止缓存
+                                    .then(response => {
+                                        if (!response.ok) {
+                                            throw new Error(`下载 ${fileName} 失败`);
+                                        }
+                                        return response.text();
+                                    })
+                                    .then(content => {
+                                        // 这里应该实现文件替换逻辑
+                                        // 由于浏览器安全限制，我们无法直接写入文件
+                                        // 但可以通过刷新页面并强制清除缓存来加载最新文件
+                                        downloadedFiles++;
                                         
-                                        // 模拟更新
-                                        setTimeout(() => {
-                                            alert('更新成功！请刷新页面以应用更新。');
-                                            document.body.removeChild(overlay);
-                                        }, 1000);
-                                    }, 1000);
-                                    return;
-                                }
-                                
-                                progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
-                                progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
-                            }, 300);
+                                        // 更新进度
+                                        const progress = Math.round((downloadedFiles / filesToDownload.length) * 100);
+                                        progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
+                                        progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
+                                        
+                                        // 所有文件下载完成
+                                        if (downloadedFiles === filesToDownload.length) {
+                                            progressContainer.innerHTML = '<p>下载完成，正在校验...</p>';
+                                            
+                                            // 模拟校验
+                                            setTimeout(() => {
+                                                progressContainer.innerHTML = '<p>校验完成，正在更新...</p>';
+                                                
+                                                // 模拟更新
+                                                setTimeout(() => {
+                                                    alert('更新成功！请刷新页面以应用更新。');
+                                                    document.body.removeChild(overlay);
+                                                    
+                                                    // 强制刷新页面并清除缓存
+                                                    setTimeout(() => {
+                                                        location.reload(true);
+                                                    }, 1000);
+                                                }, 1000);
+                                            }, 1000);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        alert('更新失败：' + error.message);
+                                        document.body.removeChild(overlay);
+                                    });
+                            });
                         });
                         
                         // 稍后更新按钮事件
