@@ -1,7 +1,7 @@
 // 班级积分管理系统
 
 // 版本号
-const CURRENT_VERSION = '1.0.1';
+const CURRENT_VERSION = '1.0.3';
 
 // 存储键名
 const STORAGE_KEY = 'classScoreSystem';
@@ -207,6 +207,69 @@ function init() {
                 // 为所有小组增加分数
                 for (let i = 1; i <= 7; i++) {
                     scoreData.groups[i.toString()] = (scoreData.groups[i.toString()] || 0) + value;
+                }
+                saveData(scoreData);
+                
+                // 更新页面显示
+                for (let i = 1; i <= 7; i++) {
+                    const scoreElement = document.querySelector(`.score-group[data-group="${i}"] .score-value`);
+                    const inputElement = document.querySelector(`.score-group[data-group="${i}"] .score-input`);
+                    if (scoreElement) {
+                        scoreElement.textContent = scoreData.groups[i.toString()];
+                        addFeedback(scoreElement);
+                    }
+                    if (inputElement) inputElement.value = scoreData.groups[i.toString()];
+                }
+                
+                // 移除弹出层
+                document.body.removeChild(overlay);
+            });
+            buttonContainer.appendChild(button);
+        });
+        
+        // 创建取消按钮
+        const cancelButton = document.createElement('button');
+        cancelButton.className = 'popup-cancel';
+        cancelButton.textContent = '取消';
+        cancelButton.addEventListener('click', function() {
+            document.body.removeChild(overlay);
+        });
+        
+        popup.appendChild(buttonContainer);
+        popup.appendChild(cancelButton);
+        overlay.appendChild(popup);
+        document.body.appendChild(overlay);
+    });
+    
+    // 绑定全员减少按钮事件
+    document.querySelector('.subtract-all').addEventListener('click', function() {
+        // 创建遮罩层
+        const overlay = document.createElement('div');
+        overlay.className = 'popup-overlay';
+        
+        // 创建弹出框
+        const popup = document.createElement('div');
+        popup.className = 'popup';
+        
+        // 创建标题
+        const title = document.createElement('h3');
+        title.textContent = '选择减分值';
+        popup.appendChild(title);
+        
+        // 创建按钮容器
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'popup-buttons';
+        
+        // 创建按钮
+        const values = [1, 2, 3, 4];
+        values.forEach(value => {
+            const button = document.createElement('button');
+            button.className = 'popup-button';
+            button.textContent = `-${value}`;
+            button.addEventListener('click', function() {
+                // 为所有小组减少分数
+                for (let i = 1; i <= 7; i++) {
+                    scoreData.groups[i.toString()] = Math.max(0, (scoreData.groups[i.toString()] || 0) - value);
                 }
                 saveData(scoreData);
                 

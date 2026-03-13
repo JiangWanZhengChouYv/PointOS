@@ -287,7 +287,7 @@ main {
     margin-top: 30px;
 }
 
-.reset-all, .add-all, .settings, .evaluate {
+.reset-all, .add-all, .subtract-all, .settings, .evaluate {
     padding: 15px 30px;
     border: none;
     border-radius: 4px;
@@ -316,6 +316,15 @@ main {
     background-color: #45a049;
 }
 
+.subtract-all {
+    background-color: #f44336;
+    color: white;
+}
+
+.subtract-all:hover {
+    background-color: #da190b;
+}
+
 .settings {
     background-color: #999;
     color: white;
@@ -334,7 +343,7 @@ main {
     background-color: #0b7dda;
 }
 
-.reset-all:active, .add-all:active, .settings:active, .evaluate:active {
+.reset-all:active, .add-all:active, .subtract-all:active, .settings:active, .evaluate:active {
     transform: scale(0.95);
 }
 
