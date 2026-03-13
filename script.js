@@ -1,10 +1,94 @@
 // 班级积分管理系统
 
 // 版本号
-const CURRENT_VERSION = '1.0.3';
+const CURRENT_VERSION = '1.1.0';
 
 // 存储键名
 const STORAGE_KEY = 'classScoreSystem';
+const WALLPAPER_STORAGE_KEY = 'wallpaperSettings';
+
+// 预设壁纸
+const PRESET_WALLPAPERS = [
+    {
+        id: 'default',
+        name: '默认渐变',
+        url: '',
+        type: 'default'
+    },
+    {
+        id: 'nature',
+        name: '自然风光',
+        url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80',
+        type: 'preset'
+    },
+    {
+        id: 'geometric',
+        name: '几何图案',
+        url: 'https://images.unsplash.com/photo-1557683316-973673baf926?w=1920&q=80',
+        type: 'preset'
+    },
+    {
+        id: 'library',
+        name: '图书馆',
+        url: 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=1920&q=80',
+        type: 'preset'
+    },
+    {
+        id: 'classroom',
+        name: '教室',
+        url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1920&q=80',
+        type: 'preset'
+    }
+];
+
+// 初始化壁纸设置
+function initWallpaperSettings() {
+    const existingSettings = localStorage.getItem(WALLPAPER_STORAGE_KEY);
+    if (!existingSettings) {
+        const defaultSettings = {
+            type: 'default',
+            url: '',
+            opacity: 1
+        };
+        localStorage.setItem(WALLPAPER_STORAGE_KEY, JSON.stringify(defaultSettings));
+        return defaultSettings;
+    }
+    return JSON.parse(existingSettings);
+}
+
+// 保存壁纸设置
+function saveWallpaperSettings(settings) {
+    localStorage.setItem(WALLPAPER_STORAGE_KEY, JSON.stringify(settings));
+}
+
+// 应用壁纸
+function applyWallpaper(settings) {
+    const body = document.body;
+    if (settings.type === 'default' || !settings.url) {
+        body.style.backgroundImage = 'none';
+        body.style.background = 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f0f9ff 100%)';
+        body.classList.remove('wallpaper-custom');
+    } else {
+        body.style.backgroundImage = `url(${settings.url})`;
+        body.style.backgroundSize = 'cover';
+        body.style.backgroundPosition = 'center';
+        body.style.backgroundRepeat = 'no-repeat';
+        body.style.backgroundAttachment = 'fixed';
+        body.classList.add('wallpaper-custom');
+    }
+}
+
+// 重置壁纸
+function resetWallpaper() {
+    const defaultSettings = {
+        type: 'default',
+        url: '',
+        opacity: 1
+    };
+    saveWallpaperSettings(defaultSettings);
+    applyWallpaper(defaultSettings);
+    return defaultSettings;
+}
 
 // 初始化数据
 function initData() {
@@ -53,8 +137,182 @@ function addFeedback(element) {
     }, 500);
 }
 
+// 创建壁纸选择弹出层
+function createWallpaperPopup(currentSettings) {
+    let tempSettings = { ...currentSettings };
+    
+    // 创建遮罩层
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    
+    // 创建弹出框
+    const popup = document.createElement('div');
+    popup.className = 'popup wallpaper-popup';
+    
+    // 创建标题
+    const title = document.createElement('h3');
+    title.textContent = '自定义壁纸';
+    popup.appendChild(title);
+    
+    // 创建预设壁纸区域
+    const presetsSection = document.createElement('div');
+    presetsSection.className = 'wallpaper-presets';
+    
+    const presetsTitle = document.createElement('h4');
+    presetsTitle.textContent = '预设壁纸';
+    presetsSection.appendChild(presetsTitle);
+    
+    const presetsContainer = document.createElement('div');
+    presetsContainer.className = 'presets-container';
+    
+    PRESET_WALLPAPERS.forEach(wallpaper => {
+        const presetItem = document.createElement('div');
+        presetItem.className = 'preset-item';
+        if ((wallpaper.type === 'default' && tempSettings.type === 'default') || 
+            (wallpaper.url === tempSettings.url && tempSettings.type !== 'custom')) {
+            presetItem.classList.add('selected');
+        }
+        
+        if (wallpaper.type === 'default') {
+            presetItem.style.background = 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f0f9ff 100%)';
+        } else {
+            presetItem.style.backgroundImage = `url(${wallpaper.url})`;
+            presetItem.style.backgroundSize = 'cover';
+            presetItem.style.backgroundPosition = 'center';
+        }
+        
+        const presetLabel = document.createElement('span');
+        presetLabel.textContent = wallpaper.name;
+        presetItem.appendChild(presetLabel);
+        
+        presetItem.addEventListener('click', () => {
+            document.querySelectorAll('.preset-item').forEach(item => item.classList.remove('selected'));
+            presetItem.classList.add('selected');
+            if (wallpaper.type === 'default') {
+                tempSettings = { type: 'default', url: '', opacity: 1 };
+            } else {
+                tempSettings = { type: 'preset', url: wallpaper.url, opacity: 1 };
+            }
+            updatePreview(tempSettings);
+        });
+        
+        presetsContainer.appendChild(presetItem);
+    });
+    
+    presetsSection.appendChild(presetsContainer);
+    popup.appendChild(presetsSection);
+    
+    // 创建自定义上传区域
+    const customSection = document.createElement('div');
+    customSection.className = 'wallpaper-custom-upload';
+    
+    const customTitle = document.createElement('h4');
+    customTitle.textContent = '自定义上传';
+    customSection.appendChild(customTitle);
+    
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/jpeg,image/png,image/gif';
+    fileInput.style.display = 'none';
+    
+    const uploadButton = document.createElement('button');
+    uploadButton.className = 'popup-button';
+    uploadButton.textContent = '选择图片';
+    uploadButton.addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                tempSettings = { type: 'custom', url: event.target.result, opacity: 1 };
+                document.querySelectorAll('.preset-item').forEach(item => item.classList.remove('selected'));
+                updatePreview(tempSettings);
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+    
+    customSection.appendChild(uploadButton);
+    popup.appendChild(customSection);
+    
+    // 创建预览区域
+    const previewSection = document.createElement('div');
+    previewSection.className = 'wallpaper-preview';
+    
+    const previewTitle = document.createElement('h4');
+    previewTitle.textContent = '预览';
+    previewSection.appendChild(previewTitle);
+    
+    const previewContainer = document.createElement('div');
+    previewContainer.className = 'preview-container';
+    previewSection.appendChild(previewContainer);
+    
+    popup.appendChild(previewSection);
+    
+    // 创建按钮容器
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'popup-buttons';
+    
+    // 创建保存按钮
+    const saveButton = document.createElement('button');
+    saveButton.className = 'popup-button';
+    saveButton.textContent = '保存';
+    saveButton.addEventListener('click', () => {
+        saveWallpaperSettings(tempSettings);
+        applyWallpaper(tempSettings);
+        document.body.removeChild(overlay);
+    });
+    buttonContainer.appendChild(saveButton);
+    
+    // 创建重置按钮
+    const resetButton = document.createElement('button');
+    resetButton.className = 'popup-button';
+    resetButton.textContent = '重置';
+    resetButton.addEventListener('click', () => {
+        tempSettings = resetWallpaper();
+        document.querySelectorAll('.preset-item').forEach(item => item.classList.remove('selected'));
+        document.querySelector('.preset-item:first-child').classList.add('selected');
+        updatePreview(tempSettings);
+    });
+    buttonContainer.appendChild(resetButton);
+    
+    popup.appendChild(buttonContainer);
+    
+    // 创建取消按钮
+    const cancelButton = document.createElement('button');
+    cancelButton.className = 'popup-cancel';
+    cancelButton.textContent = '取消';
+    cancelButton.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    
+    popup.appendChild(cancelButton);
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+    
+    // 更新预览函数
+    function updatePreview(settings) {
+        if (settings.type === 'default' || !settings.url) {
+            previewContainer.style.background = 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f0f9ff 100%)';
+            previewContainer.style.backgroundImage = 'none';
+        } else {
+            previewContainer.style.backgroundImage = `url(${settings.url})`;
+            previewContainer.style.backgroundSize = 'cover';
+            previewContainer.style.backgroundPosition = 'center';
+        }
+    }
+    
+    // 初始化预览
+    updatePreview(tempSettings);
+}
+
 // 主函数
 function init() {
+    // 初始化并应用壁纸
+    const wallpaperSettings = initWallpaperSettings();
+    applyWallpaper(wallpaperSettings);
+    
     // 初始化数据
     let scoreData = initData();
     
@@ -322,6 +580,17 @@ function init() {
         // 创建按钮容器
         const buttonContainer = document.createElement('div');
         buttonContainer.className = 'popup-buttons';
+        
+        // 创建壁纸自定义按钮
+        const wallpaperButton = document.createElement('button');
+        wallpaperButton.className = 'popup-button';
+        wallpaperButton.textContent = '自定义壁纸';
+        wallpaperButton.addEventListener('click', function() {
+            document.body.removeChild(overlay);
+            const currentSettings = initWallpaperSettings();
+            createWallpaperPopup(currentSettings);
+        });
+        buttonContainer.appendChild(wallpaperButton);
         
         // 创建导出JSON按钮
         const exportButton = document.createElement('button');
