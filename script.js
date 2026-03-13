@@ -493,23 +493,55 @@ function init() {
                             
                             // 下载更新文件
                             const filesToDownload = [
-                                `${serverUrl}/积分.html?t=${Date.now()}`,
-                                `${serverUrl}/style.css?t=${Date.now()}`,
-                                `${serverUrl}/script.js?t=${Date.now()}`
+                                { url: `${serverUrl}/积分.html?t=${Date.now()}`, name: '积分.html' },
+                                { url: `${serverUrl}/style.css?t=${Date.now()}`, name: 'style.css' },
+                                { url: `${serverUrl}/script.js?t=${Date.now()}`, name: 'script.js' }
                             ];
                             let downloadedFiles = 0;
                             let downloadPromises = [];
                             
-                            filesToDownload.forEach((fileUrl, index) => {
-                                const downloadPromise = fetch(fileUrl, {
+                            filesToDownload.forEach((fileInfo, index) => {
+                                const downloadPromise = fetch(fileInfo.url, {
                                     timeout: 10000 // 每个文件10秒超时
                                 })
                                     .then(response => {
                                         if (isCancelled) throw new Error('更新已取消');
                                         if (!response.ok) {
-                                            throw new Error(`下载文件失败: ${fileUrl} (${response.status})`);
+                                            throw new Error(`下载文件失败: ${fileInfo.url} (${response.status})`);
                                         }
-                                        return response;
+                                        return response.text();
+                                    })
+                                    .then(content => {
+                                        if (isCancelled) throw new Error('更新已取消');
+                                        
+                                        // 尝试使用File System Access API保存文件
+                                        if (window.showSaveFilePicker) {
+                                            return window.showSaveFilePicker({
+                                                suggestedName: fileInfo.name,
+                                                startIn: '.',
+                                                types: [{
+                                                    description: 'Text file',
+                                                    accept: { 'text/*': ['.html', '.css', '.js'] }
+                                                }]
+                                            })
+                                            .then(handle => handle.createWritable())
+                                            .then(writable => {
+                                                writable.write(content);
+                                                return writable.close();
+                                            });
+                                        } else {
+                                            // 降级方案：使用Blob下载
+                                            const blob = new Blob([content], { type: 'text/plain' });
+                                            const url = URL.createObjectURL(blob);
+                                            const a = document.createElement('a');
+                                            a.href = url;
+                                            a.download = fileInfo.name;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            URL.revokeObjectURL(url);
+                                            return Promise.resolve();
+                                        }
                                     })
                                     .then(() => {
                                         if (isCancelled) throw new Error('更新已取消');
@@ -522,7 +554,8 @@ function init() {
                                     })
                                     .catch(error => {
                                         if (isCancelled) throw error;
-                                        throw new Error(`下载 ${fileUrl} 失败: ${error.message}`);
+                                        console.error(`下载 ${fileInfo.name} 失败:`, error);
+                                        throw new Error(`下载 ${fileInfo.name} 失败: ${error.message}。请检查文件权限或手动下载更新。`);
                                     });
                                 
                                 downloadPromises.push(downloadPromise);
