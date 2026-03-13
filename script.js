@@ -518,7 +518,6 @@ function init() {
                                         if (window.showSaveFilePicker) {
                                             return window.showSaveFilePicker({
                                                 suggestedName: fileInfo.name,
-                                                startIn: '.',
                                                 types: [{
                                                     description: 'Text file',
                                                     accept: { 'text/*': ['.html', '.css', '.js'] }
