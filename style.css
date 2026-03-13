@@ -478,6 +478,26 @@ footer p {
     margin-top: 5px;
 }
 
+.update-cancel {
+    margin-top: 15px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    background-color: #999;
+    color: white;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+}
+
+.update-cancel:hover {
+    background-color: #777;
+}
+
+.update-cancel:active {
+    transform: scale(0.95);
+}
+
 .global-controls {
     display: flex;
     justify-content: center;

@@ -1,5 +1,5 @@
 // 班级积分管理系统
-// 更新测试
+
 // 版本号
 const CURRENT_VERSION = '1.0.3';
 
@@ -420,14 +420,19 @@ function init() {
             checkUpdateButton.textContent = '检查中...';
             
             // 实际从服务器获取更新说明
-            fetch(`${serverUrl}/update-info.json`)
+            fetch(`${serverUrl}/update-info.json?${Date.now()}`) // 添加时间戳防止缓存
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('网络错误');
+                        throw new Error(`网络错误: ${response.status}`);
                     }
                     return response.json();
                 })
                 .then(updateInfo => {
+                    // 验证更新信息格式
+                    if (!updateInfo.version || !updateInfo.changes) {
+                        throw new Error('更新说明文件格式错误');
+                    }
+                    
                     // 比较版本号
                     if (updateInfo.version > CURRENT_VERSION) {
                         // 显示更新提示
@@ -435,7 +440,8 @@ function init() {
                         updateNotice.className = 'update-notice';
                         updateNotice.innerHTML = `
                             <h4>发现新版本 ${updateInfo.version}</h4>
-                            <p>更新日期: ${updateInfo.date}</p>
+                            <p>当前版本: ${CURRENT_VERSION}</p>
+                            <p>更新日期: ${updateInfo.date || '未知'}</p>
                             <p>重要程度: ${updateInfo.importance === 'high' ? '高' : '中'}</p>
                             <h5>更新内容:</h5>
                             <ul>
@@ -462,36 +468,94 @@ function init() {
                                     <div class="progress-fill" style="width: 0%"></div>
                                 </div>
                                 <p class="progress-text">0%</p>
+                                <button class="update-cancel">取消</button>
                             `;
                             
                             updateNotice.innerHTML = '';
                             updateNotice.appendChild(progressContainer);
                             
-                            // 模拟下载进度
-                            let progress = 0;
-                            const interval = setInterval(() => {
-                                progress += 10;
-                                if (progress > 100) {
-                                    clearInterval(interval);
-                                    // 下载完成
-                                    progressContainer.innerHTML = '<p>下载完成，正在校验...</p>';
-                                    
-                                    // 模拟校验
-                                    setTimeout(() => {
-                                        progressContainer.innerHTML = '<p>校验完成，正在更新...</p>';
+                            // 取消按钮事件
+                            let isCancelled = false;
+                            progressContainer.querySelector('.update-cancel').addEventListener('click', function() {
+                                isCancelled = true;
+                                alert('更新已取消');
+                                document.body.removeChild(overlay);
+                            });
+                            
+                            // 下载更新文件并通过Service Worker更新缓存
+                            const filesToDownload = [
+                                `${serverUrl}/积分.html?t=${Date.now()}`,
+                                `${serverUrl}/style.css?t=${Date.now()}`,
+                                `${serverUrl}/script.js?t=${Date.now()}`
+                            ];
+                            let downloadedFiles = 0;
+                            let downloadPromises = [];
+                            
+                            filesToDownload.forEach((fileUrl, index) => {
+                                const downloadPromise = fetch(fileUrl)
+                                    .then(response => {
+                                        if (isCancelled) throw new Error('更新已取消');
+                                        if (!response.ok) {
+                                            throw new Error(`下载文件失败: ${fileUrl}`);
+                                        }
+                                        return response;
+                                    })
+                                    .then(() => {
+                                        if (isCancelled) throw new Error('更新已取消');
+                                        downloadedFiles++;
                                         
-                                        // 模拟更新
-                                        setTimeout(() => {
-                                            alert('更新成功！请刷新页面以应用更新。');
-                                            document.body.removeChild(overlay);
-                                        }, 1000);
-                                    }, 1000);
-                                    return;
-                                }
+                                        // 更新进度
+                                        const progress = Math.round((downloadedFiles / filesToDownload.length) * 100);
+                                        progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
+                                        progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
+                                    });
                                 
-                                progressContainer.querySelector('.progress-fill').style.width = `${progress}%`;
-                                progressContainer.querySelector('.progress-text').textContent = `${progress}%`;
-                            }, 300);
+                                downloadPromises.push(downloadPromise);
+                            });
+                            
+                            // 等待所有文件下载完成
+                            Promise.all(downloadPromises)
+                                .then(() => {
+                                    if (isCancelled) return;
+                                    
+                                    progressContainer.innerHTML = '<p>下载完成，正在更新缓存...</p>';
+                                    
+                                    // 通过Service Worker更新缓存
+                                    if ('serviceWorker' in navigator) {
+                                        navigator.serviceWorker.ready
+                                            .then((registration) => {
+                                                if (isCancelled) return;
+                                                registration.active.postMessage({
+                                                    type: 'UPDATE_CACHE',
+                                                    files: [
+                                                        '积分.html',
+                                                        'style.css',
+                                                        'script.js'
+                                                    ]
+                                                });
+                                                
+                                                // 显示更新成功提示
+                                                progressContainer.innerHTML = '<p>更新缓存完成，正在应用更新...</p>';
+                                            })
+                                            .catch((error) => {
+                                                console.error('Service Worker更新失败:', error);
+                                                alert('更新成功！请刷新页面以应用更新。');
+                                                document.body.removeChild(overlay);
+                                                location.reload(true);
+                                            });
+                                    } else {
+                                        // 不支持Service Worker时的 fallback
+                                        alert('更新成功！请刷新页面以应用更新。');
+                                        document.body.removeChild(overlay);
+                                        location.reload(true);
+                                    }
+                                })
+                                .catch(error => {
+                                    if (!isCancelled) {
+                                        alert('更新失败：' + error.message);
+                                        document.body.removeChild(overlay);
+                                    }
+                                });
                         });
                         
                         // 稍后更新按钮事件
@@ -596,6 +660,27 @@ function init() {
         });
     });
 }
+
+// 注册Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js')
+      .then((registration) => {
+        console.log('Service Worker registered with scope:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('Service Worker registration failed:', error);
+      });
+  });
+}
+
+// 监听Service Worker消息
+navigator.serviceWorker.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'CACHE_UPDATED') {
+    alert('更新成功！请刷新页面以应用更新。');
+    location.reload(true);
+  }
+});
 
 // 页面加载完成后初始化
 window.addEventListener('DOMContentLoaded', init);
