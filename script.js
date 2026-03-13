@@ -1,7 +1,7 @@
 // 班级积分管理系统
 
 // 版本号
-const CURRENT_VERSION = '1.0.2';
+const CURRENT_VERSION = '1.0.3';
 
 // 存储键名
 const STORAGE_KEY = 'classScoreSystem';
