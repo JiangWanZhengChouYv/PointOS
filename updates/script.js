@@ -1,7 +1,7 @@
 // 班级积分管理系统
 
 // 版本号
-const CURRENT_VERSION = '1.1.1';
+const CURRENT_VERSION = '1.1.2';
 
 // 更新服务器URL
 const UPDATE_SERVER_URL = 'https://jiangwanzhengchouyv.github.io/PointOS/updates';
@@ -678,6 +678,7 @@ function init() {
         
         // 显示当前更新服务器URL
         const urlDisplay = document.createElement('p');
+        urlDisplay.className = 'server-url-display';
         urlDisplay.textContent = `当前更新服务器: ${defaultUpdateUrl}`;
         urlDisplay.style.marginBottom = '15px';
         updateSection.appendChild(urlDisplay);

@@ -496,6 +496,13 @@ footer p {
     font-weight: 600;
 }
 
+.server-url-display {
+    word-wrap: break-word;
+    white-space: normal;
+    word-break: break-all;
+    line-height: 1.5;
+}
+
 .update-url-input {
     width: 100%;
     padding: 12px 16px;
