@@ -797,3 +797,183 @@ footer p {
         grid-template-columns: repeat(2, 1fr);
     }
 }
+
+/* 更新提示弹窗样式 */
+.update-notification {
+    max-width: 500px !important;
+    width: 95% !important;
+    text-align: left !important;
+}
+
+.update-notification h3 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.risk-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border-left: 4px solid var(--warning-color);
+    padding: 14px 16px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 20px;
+    font-weight: 600;
+    color: #92400e;
+    text-align: center;
+    animation: pulseWarning 2s ease-in-out infinite;
+}
+
+@keyframes pulseWarning {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 8px rgba(245, 158, 11, 0);
+    }
+}
+
+.version-info {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 16px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 16px;
+    border-left: 4px solid var(--info-color);
+}
+
+.version-info p {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.version-info p:last-child {
+    margin-bottom: 0;
+}
+
+.update-notification h4 {
+    color: var(--primary-color);
+    margin: 20px 0 12px 0;
+    font-weight: 600;
+}
+
+.changes-list {
+    margin-left: 24px;
+    margin-bottom: 24px;
+}
+
+.changes-list li {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.notification-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.notification-buttons button {
+    padding: 14px 24px;
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-sm);
+}
+
+.notification-buttons .update-now {
+    background: var(--background-gradient);
+    color: white;
+}
+
+.notification-buttons .update-now:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.notification-buttons .remind-later {
+    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+    color: white;
+}
+
+.notification-buttons .remind-later:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.notification-buttons .view-details {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    color: var(--text-primary);
+}
+
+.notification-buttons .view-details:hover {
+    background: var(--background-gradient);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+/* 更新详情弹窗样式 */
+.update-details {
+    max-width: 550px !important;
+    width: 95% !important;
+    text-align: left !important;
+}
+
+.update-details h3 {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.update-detail-info {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    padding: 16px;
+    border-radius: var(--border-radius-sm);
+    margin-bottom: 20px;
+    border-left: 4px solid var(--info-color);
+}
+
+.update-detail-info p {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+}
+
+.update-detail-info p:last-child {
+    margin-bottom: 0;
+}
+
+.update-details h4 {
+    color: var(--primary-color);
+    margin: 20px 0 12px 0;
+    font-weight: 600;
+}
+
+.update-details ul {
+    margin-left: 24px;
+    margin-bottom: 24px;
+}
+
+.update-details li {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+/* 响应式设计 */
+@media (max-width: 600px) {
+    .update-notification,
+    .update-details {
+        padding: 24px 20px !important;
+    }
+    
+    .risk-warning {
+        font-size: 0.9rem;
+        padding: 12px 14px;
+    }
+    
+    .notification-buttons button {
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+}

@@ -1,11 +1,15 @@
 // 班级积分管理系统
 
 // 版本号
-const CURRENT_VERSION = '1.1.0';
+const CURRENT_VERSION = '1.1.1';
+
+// 更新服务器URL
+const UPDATE_SERVER_URL = 'https://jiangwanzhengchouyv.github.io/PointOS/updates';
 
 // 存储键名
 const STORAGE_KEY = 'classScoreSystem';
 const WALLPAPER_STORAGE_KEY = 'wallpaperSettings';
+const UPDATE_REMINDER_STORAGE_KEY = 'updateReminderSettings';
 
 // 预设壁纸
 const PRESET_WALLPAPERS = [
@@ -1027,5 +1031,339 @@ navigator.serviceWorker.addEventListener('message', (event) => {
   }
 });
 
+// 检查是否应该显示更新提示
+function shouldShowUpdateReminder() {
+    const settings = JSON.parse(localStorage.getItem(UPDATE_REMINDER_STORAGE_KEY) || '{}');
+    if (!settings.lastRemindTime) {
+        return true;
+    }
+    const twentyFourHours = 24 * 60 * 60 * 1000;
+    return Date.now() - settings.lastRemindTime > twentyFourHours;
+}
+
+// 保存提醒设置
+function saveReminderSettings() {
+    localStorage.setItem(UPDATE_REMINDER_STORAGE_KEY, JSON.stringify({
+        lastRemindTime: Date.now()
+    }));
+}
+
+// 显示更新详情
+function showUpdateDetails(updateInfo) {
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup update-details';
+    
+    const title = document.createElement('h3');
+    title.textContent = '更新详情';
+    popup.appendChild(title);
+    
+    const versionInfo = document.createElement('div');
+    versionInfo.className = 'update-detail-info';
+    versionInfo.innerHTML = `
+        <p><strong>版本：</strong>${updateInfo.version}</p>
+        <p><strong>日期：</strong>${updateInfo.date || '未知'}</p>
+        <p><strong>重要程度：</strong>${updateInfo.importance === 'high' ? '高' : '中'}</p>
+    `;
+    popup.appendChild(versionInfo);
+    
+    const changesTitle = document.createElement('h4');
+    changesTitle.textContent = '更新内容：';
+    popup.appendChild(changesTitle);
+    
+    const changesList = document.createElement('ul');
+    updateInfo.changes.forEach(change => {
+        const li = document.createElement('li');
+        li.textContent = change;
+        changesList.appendChild(li);
+    });
+    popup.appendChild(changesList);
+    
+    const closeButton = document.createElement('button');
+    closeButton.className = 'popup-cancel';
+    closeButton.textContent = '关闭';
+    closeButton.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+    });
+    popup.appendChild(closeButton);
+    
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+}
+
+// 显示更新提示
+function showUpdateNotification(updateInfo) {
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup update-notification';
+    
+    const riskWarning = document.createElement('div');
+    riskWarning.className = 'risk-warning';
+    riskWarning.textContent = '⚠️ 更新有风险，请先备份数据';
+    popup.appendChild(riskWarning);
+    
+    const title = document.createElement('h3');
+    title.textContent = `发现新版本 ${updateInfo.version}`;
+    popup.appendChild(title);
+    
+    const versionInfo = document.createElement('div');
+    versionInfo.className = 'version-info';
+    versionInfo.innerHTML = `
+        <p>当前版本：${CURRENT_VERSION}</p>
+        <p>更新日期：${updateInfo.date || '未知'}</p>
+        <p>重要程度：${updateInfo.importance === 'high' ? '高' : '中'}</p>
+    `;
+    popup.appendChild(versionInfo);
+    
+    const changesTitle = document.createElement('h4');
+    changesTitle.textContent = '更新内容：';
+    popup.appendChild(changesTitle);
+    
+    const changesList = document.createElement('ul');
+    changesList.className = 'changes-list';
+    updateInfo.changes.forEach(change => {
+        const li = document.createElement('li');
+        li.textContent = change;
+        changesList.appendChild(li);
+    });
+    popup.appendChild(changesList);
+    
+    const buttonContainer = document.createElement('div');
+    buttonContainer.className = 'notification-buttons';
+    
+    const updateNowBtn = document.createElement('button');
+    updateNowBtn.className = 'update-now';
+    updateNowBtn.textContent = '立即更新';
+    updateNowBtn.addEventListener('click', () => {
+        document.body.removeChild(overlay);
+        performUpdate(updateInfo);
+    });
+    
+    const remindLaterBtn = document.createElement('button');
+    remindLaterBtn.className = 'remind-later';
+    remindLaterBtn.textContent = '稍后提醒';
+    remindLaterBtn.addEventListener('click', () => {
+        saveReminderSettings();
+        document.body.removeChild(overlay);
+    });
+    
+    const viewDetailsBtn = document.createElement('button');
+    viewDetailsBtn.className = 'view-details';
+    viewDetailsBtn.textContent = '查看更新详情';
+    viewDetailsBtn.addEventListener('click', () => {
+        showUpdateDetails(updateInfo);
+    });
+    
+    buttonContainer.appendChild(updateNowBtn);
+    buttonContainer.appendChild(remindLaterBtn);
+    buttonContainer.appendChild(viewDetailsBtn);
+    popup.appendChild(buttonContainer);
+    
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+}
+
+// 执行更新
+function performUpdate(updateInfo) {
+    const serverUrl = UPDATE_SERVER_URL;
+    
+    const overlay = document.createElement('div');
+    overlay.className = 'popup-overlay';
+    
+    const popup = document.createElement('div');
+    popup.className = 'popup';
+    
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'update-progress';
+    progressContainer.innerHTML = `
+        <p>正在下载更新...</p>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 0%"></div>
+        </div>
+        <p class="progress-text">0%</p>
+        <button class="update-cancel">取消</button>
+    `;
+    popup.appendChild(progressContainer);
+    overlay.appendChild(popup);
+    document.body.appendChild(overlay);
+    
+    let isCancelled = false;
+    progressContainer.querySelector('.update-cancel').addEventListener('click', () => {
+        isCancelled = true;
+        alert('更新已取消');
+        document.body.removeChild(overlay);
+    });
+    
+    const timeoutId = setTimeout(() => {
+        if (!isCancelled) {
+            isCancelled = true;
+            alert('更新超时，请检查网络连接后重试');
+            document.body.removeChild(overlay);
+        }
+    }, 30000);
+    
+    const filesToDownload = [
+        { url: `${serverUrl}/积分.html?t=${Date.now()}`, name: '积分.html' },
+        { url: `${serverUrl}/style.css?t=${Date.now()}`, name: 'style.css' },
+        { url: `${serverUrl}/script.js?t=${Date.now()}`, name: 'script.js' }
+    ];
+    let downloadedFiles = 0;
+    
+    const processFiles = async () => {
+        for (const fileInfo of filesToDownload) {
+            if (isCancelled) throw new Error('更新已取消');
+            
+            try {
+                progressContainer.innerHTML = `
+                    <p>正在下载 ${fileInfo.name}...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.round((downloadedFiles / filesToDownload.length) * 100)}%"></div>
+                    </div>
+                    <p class="progress-text">${Math.round((downloadedFiles / filesToDownload.length) * 100)}%</p>
+                    <button class="update-cancel">取消</button>
+                `;
+                
+                progressContainer.querySelector('.update-cancel').addEventListener('click', () => {
+                    isCancelled = true;
+                    alert('更新已取消');
+                    document.body.removeChild(overlay);
+                });
+                
+                const response = await fetch(fileInfo.url, {
+                    timeout: 10000
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`下载文件失败: ${fileInfo.url} (${response.status})`);
+                }
+                
+                const content = await response.text();
+                
+                progressContainer.innerHTML = `
+                    <p>正在保存 ${fileInfo.name}...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${Math.round((downloadedFiles / filesToDownload.length) * 100)}%"></div>
+                    </div>
+                    <p class="progress-text">${Math.round((downloadedFiles / filesToDownload.length) * 100)}%</p>
+                    <button class="update-cancel">取消</button>
+                `;
+                
+                progressContainer.querySelector('.update-cancel').addEventListener('click', () => {
+                    isCancelled = true;
+                    alert('更新已取消');
+                    document.body.removeChild(overlay);
+                });
+                
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: fileInfo.name,
+                        types: [{
+                            description: 'Text file',
+                            accept: { 'text/*': ['.html', '.css', '.js'] }
+                        }]
+                    });
+                    
+                    const writable = await handle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+                } else {
+                    const blob = new Blob([content], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = fileInfo.name;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+                
+                downloadedFiles++;
+                const progress = Math.round((downloadedFiles / filesToDownload.length) * 100);
+                progressContainer.innerHTML = `
+                    <p>已完成 ${fileInfo.name}</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: ${progress}%"></div>
+                    </div>
+                    <p class="progress-text">${progress}%</p>
+                    <button class="update-cancel">取消</button>
+                `;
+                
+                progressContainer.querySelector('.update-cancel').addEventListener('click', () => {
+                    isCancelled = true;
+                    alert('更新已取消');
+                    document.body.removeChild(overlay);
+                });
+                
+            } catch (error) {
+                if (isCancelled) throw error;
+                console.error(`下载 ${fileInfo.name} 失败:`, error);
+                throw new Error(`下载 ${fileInfo.name} 失败: ${error.message}。请检查文件权限或手动下载更新。`);
+            }
+        }
+    };
+    
+    processFiles()
+        .then(() => {
+            if (isCancelled) return;
+            
+            clearTimeout(timeoutId);
+            
+            progressContainer.innerHTML = '<p>下载完成，正在应用更新...</p>';
+            
+            setTimeout(() => {
+                alert('更新成功！正在应用更新...');
+                document.body.removeChild(overlay);
+                setTimeout(() => {
+                    location.reload(true);
+                }, 500);
+            }, 1000);
+        })
+        .catch(error => {
+            clearTimeout(timeoutId);
+            
+            if (!isCancelled) {
+                alert('更新失败：' + error.message);
+                document.body.removeChild(overlay);
+            }
+        });
+}
+
+// 自动检查更新
+function checkForUpdatesAutomatically() {
+    if (!shouldShowUpdateReminder()) {
+        return;
+    }
+    
+    fetch(`${UPDATE_SERVER_URL}/update-info.json?${Date.now()}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`网络错误: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(updateInfo => {
+            if (!updateInfo.version || !updateInfo.changes) {
+                throw new Error('更新说明文件格式错误');
+            }
+            
+            if (updateInfo.version > CURRENT_VERSION) {
+                showUpdateNotification(updateInfo);
+            }
+        })
+        .catch(error => {
+            console.error('自动检查更新失败:', error);
+        });
+}
+
 // 页面加载完成后初始化
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+    init();
+    setTimeout(() => {
+        checkForUpdatesAutomatically();
+    }, 1000);
+});
